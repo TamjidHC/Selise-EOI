@@ -145,6 +145,7 @@ export default function EOIGenerator() {
   const [torText, setTorText] = useState('')
   const [torFileName, setTorFileName] = useState('')
   const [torWarning, setTorWarning] = useState(false)
+  const [extracting, setExtracting] = useState(false)
 
   // Analysis state
   const [progs, setProgs] = useState([])
@@ -199,8 +200,38 @@ export default function EOIGenerator() {
       else if (ext === 'pdf') { text = await parsePdf(file); setTorWarning(true) }
       else { alert('Please upload a .docx or .pdf file'); return }
       setTorText(text)
+      autoFillForm(text)
     } catch (err) {
       alert('Could not read file: ' + err.message)
+    }
+  }
+
+  async function autoFillForm(text) {
+    setExtracting(true)
+    try {
+      const result = await aiCall(
+        model,
+        `Extract project metadata from this Terms of Reference. Return ONLY valid JSON, nothing else:
+{
+  "projectName": "full project or assignment title",
+  "procNo": "procurement/RFP/EOI/reference number (digits and letters only, no label)",
+  "client": "issuing organisation or client name",
+  "date": "submission deadline in YYYY-MM-DD format, or empty string if not found"
+}`,
+        `TOR (first 3000 characters):\n${text.slice(0, 3000)}`,
+        256
+      )
+      setForm(prev => ({
+        ...prev,
+        projectName: result.projectName || prev.projectName,
+        procNo:      result.procNo      || prev.procNo,
+        client:      result.client      || prev.client,
+        date:        result.date        || prev.date,
+      }))
+    } catch {
+      // silent — user can fill in manually
+    } finally {
+      setExtracting(false)
     }
   }
 
@@ -471,8 +502,8 @@ ${cvBlock}`
         {/* ── STEP 1: SETUP ── */}
         {step === 1 && (
           <>
-            <Card title="Project Details">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Card title={extracting ? 'Project Details — reading TOR...' : 'Project Details'}>
+              <div className={`grid grid-cols-1 sm:grid-cols-3 gap-4 transition-opacity ${extracting ? 'opacity-50 pointer-events-none' : ''}`}>
                 {[
                   { label: 'Project Name', key: 'projectName', placeholder: 'e.g. Digital Platform Development', span: 3 },
                   { label: 'Procurement No.', key: 'procNo', placeholder: 'e.g. 0002022611' },
