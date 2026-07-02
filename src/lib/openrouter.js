@@ -1,23 +1,24 @@
-const KEY = import.meta.env.VITE_OPENROUTER_KEY
+const KEY = import.meta.env.VITE_GEMINI_KEY
 
 export async function aiCall(model, system, user, maxTokens = 8192) {
-  const resp = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${KEY}`,
-      'Content-Type': 'application/json',
-      'HTTP-Referer': 'https://selisegroup.com',
-      'X-Title': 'SELISE EOI Generator',
-    },
-    body: JSON.stringify({
-      model,
-      max_tokens: maxTokens,
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: user },
-      ],
-    }),
-  })
+  const resp = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: maxTokens,
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user',   content: user   },
+        ],
+      }),
+    }
+  )
 
   if (!resp.ok) {
     const err = await resp.json().catch(() => ({}))

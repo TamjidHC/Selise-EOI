@@ -1,9 +1,8 @@
 export const MODELS = [
-  { id: 'meta-llama/llama-3.3-70b-instruct:free',   label: 'Llama 3.3 70B (Free)'     },
-  { id: 'deepseek/deepseek-r1:free',                label: 'DeepSeek R1 (Free)'        },
-  { id: 'mistralai/mistral-7b-instruct:free',       label: 'Mistral 7B (Free)'         },
-  { id: 'anthropic/claude-sonnet-4-5',              label: 'Claude Sonnet (Premium)'   },
-  { id: 'openai/gpt-4o',                            label: 'GPT-4o (Premium)'          },
+  { id: 'gemini-2.0-flash',    label: 'Gemini 2.0 Flash (Free)'  },
+  { id: 'gemini-1.5-flash',    label: 'Gemini 1.5 Flash (Free)'  },
+  { id: 'gemini-1.5-pro',      label: 'Gemini 1.5 Pro'           },
+  { id: 'gemini-2.5-flash',    label: 'Gemini 2.5 Flash'         },
 ]
 
 export const ENTITIES = [
