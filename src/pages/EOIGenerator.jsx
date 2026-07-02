@@ -205,32 +205,56 @@ export default function EOIGenerator() {
   }
 
   function autoFillForm(text) {
+    const t = text.replace(/\r\n/g, '\n')
+
     const extract = (patterns) => {
       for (const re of patterns) {
-        const m = text.match(re)
-        if (m?.[1]) return m[1].trim().replace(/\s+/g, ' ')
+        const m = t.match(re)
+        const val = m?.[1]?.trim().replace(/\s+/g, ' ')
+        if (val && val.length > 1) return val
       }
       return ''
     }
 
     const procNo = extract([
-      /(?:procurement|rfp|rfq|eoi|reference|tender|bid|solicitation)[\w\s]*(?:no|number|#|:)[.\s:]*([A-Z0-9][\w/\-.]{2,30})/i,
-      /(?:ref(?:erence)?)[.\s:#]*([A-Z0-9][\w/\-.]{2,30})/i,
-      /(?:no\.|number)[.\s:]*([0-9]{4,}[\w/\-.]*)/i,
+      /[Pp]rocurement\s+[Nn]o\.?\s*:?\s*([A-Z0-9][\w/\-.]{3,30})/,
+      /[Pp]rocurement\s+[Rr]eference\s+[Nn]o\.?\s*:?\s*([A-Z0-9][\w/\-.]{3,30})/,
+      /[Rr]eference\s+[Nn]o\.?\s*:?\s*([A-Z0-9][\w/\-.]{3,30})/,
+      /\bRFP\s+[Nn]o\.?\s*:?\s*([A-Z0-9][\w/\-.]{3,30})/,
+      /\bEOI\s+[Nn]o\.?\s*:?\s*([A-Z0-9][\w/\-.]{3,30})/,
+      /\b(?:No\.|Number)\s*:?\s*([0-9]{6,})/,
+      /([0-9]{10})/,
     ])
 
     const projectName = extract([
-      /(?:project|assignment|contract|title|subject)\s*(?:name|title)?[:\-]\s*([^\n]{10,120})/i,
-      /(?:terms of reference\s+for|tor\s+for|request\s+for)[:\s]+([^\n]{10,120})/i,
+      /[Aa]ssignment\s+[Tt]itle\s*:?\s*([^\n]{10,150})/,
+      /[Pp]roject\s+[Tt]itle\s*:?\s*([^\n]{10,150})/,
+      /[Cc]ontract\s+[Tt]itle\s*:?\s*([^\n]{10,150})/,
+      /[Ss]ubject\s*:?\s*([^\n]{10,150})/,
+      /[Tt]erms\s+of\s+[Rr]eference\s+for\s*:?\s*([^\n]{10,150})/,
+      /[Tt]erms\s+of\s+[Rr]eference\s*[\n\-–]+\s*([^\n]{10,150})/,
+      /[Rr]equest\s+for\s+[Ee]xpressions?\s+of\s+[Ii]nterest[^\n]*[\n]+([^\n]{10,150})/,
     ])
 
     const client = extract([
-      /(?:issued\s+by|client|procuring\s+entity|contracting\s+authority|requesting\s+entity|beneficiary|funding\s+agency)[:\s]+([^\n]{4,80})/i,
+      /[Cc]lient\s*:?\s*([^\n]{4,80})/,
+      /[Ii]ssued\s+by\s*:?\s*([^\n]{4,80})/,
+      /[Pp]rocuring\s+[Ee]ntity\s*:?\s*([^\n]{4,80})/,
+      /[Cc]ontracting\s+[Aa]uthority\s*:?\s*([^\n]{4,80})/,
+      /[Rr]equesting\s+[Ee]ntity\s*:?\s*([^\n]{4,80})/,
+      /[Ff]unding\s+[Aa]gency\s*:?\s*([^\n]{4,80})/,
+      /([Ww]orld\s+[Bb]ank(?:\s+[Gg]roup)?)/,
+      /([Aa]sian\s+[Dd]evelopment\s+[Bb]ank|ADB)/,
+      /([Ii]nternational\s+[Ff]inance\s+[Cc]orporation|IFC)/,
     ])
 
     const rawDate = extract([
-      /(?:submission|closing|deadline|due\s+date|last\s+date)[\w\s]*[:\-]\s*(\d{1,2}[\s/\-.]\w+[\s/\-.]\d{2,4})/i,
-      /(?:submission|closing|deadline|due\s+date)[\w\s]*[:\-]\s*(\w+\s+\d{1,2},?\s+\d{4})/i,
+      /[Ss]ubmission\s+[Dd]eadline\s*:?\s*([^\n]{6,40})/,
+      /[Cc]losing\s+[Dd]ate\s*:?\s*([^\n]{6,40})/,
+      /[Dd]ue\s+[Dd]ate\s*:?\s*([^\n]{6,40})/,
+      /[Dd]eadline\s*:?\s*([^\n]{6,40})/,
+      /[Ll]ast\s+[Dd]ate\s*:?\s*([^\n]{6,40})/,
+      /[Ss]ubmission\s+[Dd]ate\s*:?\s*([^\n]{6,40})/,
     ])
 
     let date = ''
@@ -639,7 +663,13 @@ ${cvBlock}`
               <ErrorBox
                 message={aiError}
                 onRetry={() => { setAiError(null); retryFnRef.current?.() }}
-                onSwitchModel={() => {}}
+                onSwitchModel={() => {
+                  const idx = MODELS.findIndex(m => m.id === model)
+                  const next = MODELS[(idx + 1) % MODELS.length]
+                  setModel(next.id)
+                  setAiError(null)
+                  setTimeout(() => retryFnRef.current?.(), 100)
+                }}
               />
             )}
           </Card>
@@ -725,7 +755,13 @@ ${cvBlock}`
                 <ErrorBox
                   message={genError}
                   onRetry={() => { setGenError(null); retryFnRef.current?.() }}
-                  onSwitchModel={() => {}}
+                  onSwitchModel={() => {
+                    const idx = MODELS.findIndex(m => m.id === model)
+                    const next = MODELS[(idx + 1) % MODELS.length]
+                    setModel(next.id)
+                    setGenError(null)
+                    setTimeout(() => retryFnRef.current?.(), 100)
+                  }}
                 />
               )}
             </Card>
