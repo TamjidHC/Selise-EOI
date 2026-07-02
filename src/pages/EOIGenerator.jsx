@@ -145,7 +145,6 @@ export default function EOIGenerator() {
   const [torText, setTorText] = useState('')
   const [torFileName, setTorFileName] = useState('')
   const [torWarning, setTorWarning] = useState(false)
-  const [extracting, setExtracting] = useState(false)
 
   // Analysis state
   const [progs, setProgs] = useState([])
@@ -206,33 +205,48 @@ export default function EOIGenerator() {
     }
   }
 
-  async function autoFillForm(text) {
-    setExtracting(true)
-    try {
-      const result = await aiCall(
-        model,
-        `Extract project metadata from this Terms of Reference. Return ONLY valid JSON, nothing else:
-{
-  "projectName": "full project or assignment title",
-  "procNo": "procurement/RFP/EOI/reference number (digits and letters only, no label)",
-  "client": "issuing organisation or client name",
-  "date": "submission deadline in YYYY-MM-DD format, or empty string if not found"
-}`,
-        `TOR (first 3000 characters):\n${text.slice(0, 3000)}`,
-        256
-      )
-      setForm(prev => ({
-        ...prev,
-        projectName: result.projectName || prev.projectName,
-        procNo:      result.procNo      || prev.procNo,
-        client:      result.client      || prev.client,
-        date:        result.date        || prev.date,
-      }))
-    } catch {
-      // silent — user can fill in manually
-    } finally {
-      setExtracting(false)
+  function autoFillForm(text) {
+    const extract = (patterns) => {
+      for (const re of patterns) {
+        const m = text.match(re)
+        if (m?.[1]) return m[1].trim().replace(/\s+/g, ' ')
+      }
+      return ''
     }
+
+    const procNo = extract([
+      /(?:procurement|rfp|rfq|eoi|reference|tender|bid|solicitation)[\w\s]*(?:no|number|#|:)[.\s:]*([A-Z0-9][\w/\-.]{2,30})/i,
+      /(?:ref(?:erence)?)[.\s:#]*([A-Z0-9][\w/\-.]{2,30})/i,
+      /(?:no\.|number)[.\s:]*([0-9]{4,}[\w/\-.]*)/i,
+    ])
+
+    const projectName = extract([
+      /(?:project|assignment|contract|title|subject)\s*(?:name|title)?[:\-]\s*([^\n]{10,120})/i,
+      /(?:terms of reference\s+for|tor\s+for|request\s+for)[:\s]+([^\n]{10,120})/i,
+    ])
+
+    const client = extract([
+      /(?:issued\s+by|client|procuring\s+entity|contracting\s+authority|requesting\s+entity|beneficiary|funding\s+agency)[:\s]+([^\n]{4,80})/i,
+    ])
+
+    const rawDate = extract([
+      /(?:submission|closing|deadline|due\s+date|last\s+date)[\w\s]*[:\-]\s*(\d{1,2}[\s/\-.]\w+[\s/\-.]\d{2,4})/i,
+      /(?:submission|closing|deadline|due\s+date)[\w\s]*[:\-]\s*(\w+\s+\d{1,2},?\s+\d{4})/i,
+    ])
+
+    let date = ''
+    if (rawDate) {
+      const parsed = new Date(rawDate)
+      if (!isNaN(parsed)) date = parsed.toISOString().split('T')[0]
+    }
+
+    setForm(prev => ({
+      ...prev,
+      projectName: projectName || prev.projectName,
+      procNo:      procNo      || prev.procNo,
+      client:      client      || prev.client,
+      date:        date        || prev.date,
+    }))
   }
 
   function setProg(idx, status, detail) {
@@ -502,8 +516,8 @@ ${cvBlock}`
         {/* ── STEP 1: SETUP ── */}
         {step === 1 && (
           <>
-            <Card title={extracting ? 'Project Details — reading TOR...' : 'Project Details'}>
-              <div className={`grid grid-cols-1 sm:grid-cols-3 gap-4 transition-opacity ${extracting ? 'opacity-50 pointer-events-none' : ''}`}>
+            <Card title="Project Details">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {[
                   { label: 'Project Name', key: 'projectName', placeholder: 'e.g. Digital Platform Development', span: 3 },
                   { label: 'Procurement No.', key: 'procNo', placeholder: 'e.g. 0002022611' },
