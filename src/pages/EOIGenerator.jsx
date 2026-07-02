@@ -199,7 +199,6 @@ export default function EOIGenerator() {
       else if (ext === 'pdf') { text = await parsePdf(file); setTorWarning(true) }
       else { alert('Please upload a .docx or .pdf file'); return }
       setTorText(text)
-      autoFillForm(text)
     } catch (err) {
       alert('Could not read file: ' + err.message)
     }
@@ -516,7 +515,45 @@ ${cvBlock}`
         {/* ── STEP 1: SETUP ── */}
         {step === 1 && (
           <>
+            <Card title="Terms of Reference">
+              <div className="mb-4">
+                <label className="block text-xs font-semibold text-gray-600 mb-2">Upload TOR file <span className="font-normal text-gray-400">(.docx or .pdf)</span></label>
+                <div className="flex items-center gap-3">
+                  <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors">
+                    ↑ Upload file
+                    <input type="file" accept=".docx,.pdf" onChange={handleTorFile} className="hidden" />
+                  </label>
+                  {torFileName && <span className="text-sm text-gray-500">{torFileName}</span>}
+                </div>
+                {torWarning && (
+                  <div className="mt-3 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-700">
+                    ⚠ Review the extracted text below — PDF extraction can produce errors. Edit anything that looks wrong before analysing.
+                  </div>
+                )}
+              </div>
+              <label className="block text-xs font-semibold text-gray-600 mb-2">Or paste TOR text</label>
+              <textarea
+                value={torText}
+                onChange={e => setTorText(e.target.value)}
+                rows={16}
+                placeholder="Paste the complete Terms of Reference here, or upload a file above."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#741B47] resize-y font-mono leading-relaxed"
+              />
+              <p className="text-xs text-gray-400 mt-1">{torText.length} characters</p>
+            </Card>
+
             <Card title="Project Details">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-xs text-gray-400">Review and correct the fields below before analysing.</p>
+                {torText.length > 100 && (
+                  <button
+                    onClick={() => autoFillForm(torText)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#741B47]/10 text-[#741B47] border border-[#741B47]/30 rounded-lg text-xs font-semibold hover:bg-[#741B47]/20 transition-colors"
+                  >
+                    ↖ Fill from TOR
+                  </button>
+                )}
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {[
                   { label: 'Project Name', key: 'projectName', placeholder: 'e.g. Digital Platform Development', span: 3 },
@@ -546,33 +583,6 @@ ${cvBlock}`
                   </select>
                 </div>
               </div>
-            </Card>
-
-            <Card title="Terms of Reference">
-              <div className="mb-4">
-                <label className="block text-xs font-semibold text-gray-600 mb-2">Upload TOR file <span className="font-normal text-gray-400">(.docx or .pdf)</span></label>
-                <div className="flex items-center gap-3">
-                  <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors">
-                    ↑ Upload file
-                    <input type="file" accept=".docx,.pdf" onChange={handleTorFile} className="hidden" />
-                  </label>
-                  {torFileName && <span className="text-sm text-gray-500">{torFileName}</span>}
-                </div>
-                {torWarning && (
-                  <div className="mt-3 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-700">
-                    ⚠ Review the extracted text below — PDF extraction can produce errors. Edit anything that looks wrong before analysing.
-                  </div>
-                )}
-              </div>
-              <label className="block text-xs font-semibold text-gray-600 mb-2">Or paste TOR text</label>
-              <textarea
-                value={torText}
-                onChange={e => setTorText(e.target.value)}
-                rows={16}
-                placeholder="Paste the complete Terms of Reference here, or upload a file above."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#741B47] resize-y font-mono leading-relaxed"
-              />
-              <p className="text-xs text-gray-400 mt-1">{torText.length} characters</p>
             </Card>
 
             <div className="flex justify-end">
